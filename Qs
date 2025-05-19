@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ultimate Quiz Challenge</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+    margin: 0;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+  .container {
+    max-width: 600px;
+    margin: auto;
+    background: rgba(0,0,0,0.7);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+  #name-input-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.7);
+    padding: 15px;
+    border-radius: 10px;
+    display: none;
+    z-index: 100;
+  }
+  #name-input-container label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  #name-input-container input {
+    width: 140px;
+    padding: 6px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    border: none;
+    font-size: 16px;
+  }
+  h1, h2 {
+    text-align: center;
+  }
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .choice-btn {
+    background: #FFD700;
+    color: black;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 18px;
+    border-radius: 5px;
+    transition: background 0.3s, transform 0.2s;
+    width: 45%;
+  }
+  .choice-btn:hover {
+    background: #FFC107;
+    transform: scale(1.05);
+  }
+  .skip-btn {
+    background: #FF5733;
+    color: white;
+    font-size: 18px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 10px;
+  }
+  .skip-btn:hover {
+    background: #C70039;
+  }
+  .hidden {
+    display: none;
+  }
+  #quiz-header {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: #FFD700;
+    margin-bottom: 15px;
+  }
+  #progress-container {
+    background: #ccc;
+    height: 10px;
+    width: 100%;
+    border-radius: 5px;
+    margin: 10px 0;
+  }
+  #progress-bar {
+    height: 10px;
+    width: 0%;
+    background: #FFD700;
+    border-radius: 5px;
+    transition: width 0.4s ease-in-out;
+  }
+  .correct {
+    background-color: green !important;
+    color: white;
+  }
+  .incorrect {
+    background-color: red !important;
+    color: white;
+  }
+  #leaderboard {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    max-width: 600px;
+    margin: auto;
+    text-align: center;
+    color: #4CAF50;
+    font-size: 22px;
+    font-weight: bold;
+  }
+  #score-display {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4CAF50;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px;
+    border-radius: 10px;
+    display: inline-block;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
+    white-space: pre-line;
+  }
+  @media (max-width: 600px) {
+    .choice-btn {
+      width: 90%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="name-input-container">
+  <label for="player1-name">Player 1 Name:</label>
+  <input type="text" id="player1-name" placeholder="Player 1" maxlength="15" />
+  <label for="player2-name">Player 2 Name:</label>
+  <input type="text" id="player2-name" placeholder="Player 2" maxlength="15" />
+</div>
+
+<div class="container">
+  <h1>Welcome to the Ultimate Quiz Challenge!</h1>
+
+  <div id="mode-selection">
+    <h2>Choose Mode:</h2>
+    <div class="choices">
+      <button class="choice-btn" onclick="selectMode('single')">Single Player</button>
+      <button class="choice-btn" onclick="selectMode('multiplayer')">Multiplayer</button>
+    </div>
+  </div>
+
+  <div id="category-selection" class="hidden">
+    <h2>Choose a Category:</h2>
+    <div class="choices">
+      <button class="choice-btn" onclick="selectCategory('sports')">Sports</button>
+      <button class="choice-btn" onclick="selectCategory('maths')">Maths</button>
+      <button class="choice-btn" onclick="selectCategory('flags')">Countries & Flags</button>
+    </div>
+  </div>
+
+  <div id="quiz-container" class="hidden">
+    <div id="quiz-header">
+      <span id="player-turn"></span>
+      <span id="timer"></span>
+      <span id="current-score"></span>
+    </div>
+    <div id="progress-container"><div id="progress-bar"></div></div>
+    <h2 id="question"></h2>
+    <div id="options"></div>
+    <button class="skip-btn" onclick="skipQuestion()">Skip Question</button>
+  </div>
+
+  <div id="result" class="hidden">
+    <div id="leaderboard">
+      <h2>Final Scores:</h2>
+      <p id="score-display"></p>
+      <button class="choice-btn" onclick="playAgain()">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let gameMode = "";
+  let selectedCategory = "";
+  let currentQuestionIndex = 0;
+  let selectedQuestions = [];
+  let scorePlayer1 = 0;
+  let scorePlayer2 = 0;
+  let currentPlayer = 1;
+  let timer;
+  let timeLeft = 15;
+
+  let player1Name = "Player 1";
+  let player2Name = "Player 2";
+
+  const questions = {
+    sports: [
+      { q: "How many players are on a football team?", options: ["9", "11", "13", "15"], answer: "11" },
+      { q: "Which sport is known as the 'king of sports'?", options: ["Basketball", "Football", "Tennis", "Cricket"], answer: "Football" }
+    ],
+    maths: [
+      { q: "What is 5 + 7?", options: ["10", "12", "14", "16"], answer: "12" },
+      { q: "What is the square root of 64?", options: ["6", "7", "8", "9"], answer: "8" }
+    ],
+    flags: [
+      { q: "Which country's flag has a red circle?", options: ["Japan", "India", "Brazil", "Canada"], answer: "Japan" },
+      { q: "Which country's flag has a maple leaf?", options: ["USA", "Germany", "Canada", "France"], answer: "Canada" }
+    ]
+  };
+
+  // DOM elements for name inputs
+  const nameInputContainer = document.getElementById('name-input-container');
+  const player1NameInput = document.getElementById('player1-name');
+  const player2NameInput = document.getElementById('player2-name');
+
+  function selectMode(mode) {
+    gameMode = mode;
+    show("category-selection");
+    hide("mode-selection");
+    showNameInputs();
+    if (gameMode === "single") {
+      player2NameInput.style.display = "none";
+      player2Name = ""; // no player 2 name in single player
+    } else {
+      player2NameInput.style.display = "block";
+      player2Name = player2NameInput.value || "Player 2";
+    }
+    // Prefill inputs with current names
+    player1NameInput.value = player1Name;
+    player2NameInput.value = player2Name;
+
+    attachNameInputListeners();
+  }
+
+  function selectCategory(category) {
+    selectedCategory = category;
+    hide("category-selection");
+    hideNameInputs();
+    show("quiz-container");
+    startQuiz();
+  }
+
+  function show(id) {
+    document.getElementById(id).classList.remove("hidden");
+  }
+
+  function hide(id) {
+    document.getElementById(id).classList.add("hidden");
+  }
+
+  function showNameInputs() {
+    nameInputContainer.style.display = "block";
+  }
+
+  function hideNameInputs() {
+    nameInputContainer.style.display = "none";
+  }
+
+  function attachNameInputListeners() {
+    // Remove any old listeners to avoid duplicates
+    player1NameInput.onkeydown = null;
+    player2NameInput.onkeydown = null;
+    document.removeEventListener('click', outsideClickListener);
+
+    // Save names on Enter
+    player1NameInput.onkeydown = function(e) {
+      if(e.key === 'Enter') {
+        saveNames();
+        player1NameInput.blur();
+        player2NameInput.blur();
+      }
+    };
+    player2NameInput.onkeydown = function(e) {
+      if(e.key === 'Enter') {
+        saveNames();
+        player1NameInput.blur();
+        player2NameInput.blur();
+      }
+    };
+
+    // Save names if clicked outside inputs
+    document.addEventListener('click', outsideClickListener);
+  }
+
+  function outsideClickListener(e) {
+    if (!nameInputContainer.contains(e.target)) {
+      saveNames();
+      player1NameInput.blur();
+      player2NameInput.blur();
+    }
+  }
+
+  function saveNames() {
+    const val1 = player1NameInput.value.trim();
+    const val2 = player2NameInput.value.trim();
+
+    if(val1) player1Name = val1;
+    if(gameMode === 'multiplayer' && val2) player2Name = val2;
+    else if(gameMode === 'single') player2Name = "";
+
+    updateScoreDisplay();
+  }
+
+  function startQuiz() {
+    selectedQuestions = shuffleArray([...questions[selectedCategory]]);
+    currentQuestionIndex = 0;
+    scorePlayer1 = 0;
+    scorePlayer2 = 0;
+    currentPlayer = 1;
+    updateScoreDisplay();
+    loadQuestion();
+  }
+
+  function shuffleArray(array) {
+    return array.sort(() => Math.random() - 0.5);
+  }
+
+  function loadQuestion() {
+    if (currentQuestionIndex >= selectedQuestions.length) {
+      endQuiz();
+      return;
+    }
+
+    updateProgress();
+    updateScoreDisplay();
+    startTimer();
+
+    const questionData = selectedQuestions[currentQuestionIndex];
+    document.getElementById("question").innerText = questionData.q;
+
+    document.getElementById("player-turn").innerText = gameMode === "multiplayer" ? `${currentPlayer === 1 ? player1Name : player2Name}'s Turn` : `${player1Name}'s Turn`;
+
+    const optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+
+    questionData.options.forEach(option => {
+      const btn = document.createElement("button");
+      btn.innerText = option;
+      btn.classList.add("choice-btn");
+      btn.onclick = () => handleAnswer(btn, option === questionData.answer);
+      optionsDiv.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(btn, isCorrect) {
+    clearInterval(timer);
+
+    const buttons = document.querySelectorAll("#options button");
+    buttons.forEach(b => b.disabled = true);
+
+    if(isCorrect) {
+      btn.classList.add("correct");
+      if(gameMode === "multiplayer") {
+        if(currentPlayer === 1) scorePlayer1++; else scorePlayer2++;
+      } else {
+        scorePlayer1++;
+      }
+    } else {
+      btn.classList.add("incorrect");
+      // highlight correct answer
+      const correctAnswer = selectedQuestions[currentQuestionIndex].answer;
+      buttons.forEach(b => {
+        if(b.innerText === correctAnswer) b.classList.add("correct");
+      });
+    }
+    updateScoreDisplay();
+    setTimeout(() => {
+      currentQuestionIndex++;
+      if(gameMode === "multiplayer") currentPlayer = currentPlayer === 1 ? 2 : 1;
+      loadQuestion();
+    }, 1000);
+  }
+
+  function skipQuestion() {
+    clearInterval(timer);
+    currentQuestionIndex++;
+    if(gameMode === "multiplayer") currentPlayer = currentPlayer === 1 ? 2 : 1;
+    loadQuestion();
+  }
+
+  function startTimer() {
+    timeLeft = 15;
+    const timerElement = document.getElementById("timer");
+    timerElement.innerText = `Time Left: ${timeLeft}s`;
+
+    clearInterval(timer);
+    timer = setInterval(() => {
+      timeLeft--;
+      timerElement.innerText = `Time Left: ${timeLeft}s`;
+      if(timeLeft <= 0) {
+        clearInterval(timer);
+        // Disable all buttons
+        const buttons = document.querySelectorAll("#options button");
+        buttons.forEach(b => b.disabled = true);
+        // highlight correct answer
+        const correctAnswer = selectedQuestions[currentQuestionIndex].answer;
+        buttons.forEach(b => {
+          if(b.innerText === correctAnswer) b.classList.add("correct");
+        });
+        setTimeout(() => {
+          currentQuestionIndex++;
+          if(gameMode === "multiplayer") currentPlayer = currentPlayer === 1 ? 2 : 1;
+          loadQuestion();
+        }, 1000);
+      }
+    }, 1000);
+  }
+
+  function updateProgress() {
+    const progressBar = document.getElementById("progress-bar");
+    const progressPercent = (currentQuestionIndex / selectedQuestions.length) * 100;
+    progressBar.style.width = progressPercent + "%";
+  }
+
+  function updateScoreDisplay() {
+    let scoreText = "";
+    if(gameMode === "multiplayer") {
+      scoreText = `${player1Name}: ${scorePlayer1} | ${player2Name}: ${scorePlayer2}`;
+    } else {
+      scoreText = `${player1Name}: ${scorePlayer1}`;
+    }
+    document.getElementById("current-score").innerText = scoreText;
+  }
+
+  function endQuiz() {
+    clearInterval(timer);
+    hide("quiz-container");
+    show("result");
+
+    let resultText = "";
+    if(gameMode === "multiplayer") {
+      if(scorePlayer1 > scorePlayer2) {
+        resultText = `${player1Name} wins!\n${player1Name}: ${scorePlayer1}\n${player2Name}: ${scorePlayer2}`;
+      } else if(scorePlayer2 > scorePlayer1) {
+        resultText = `${player2Name} wins!\n${player1Name}: ${scorePlayer1}\n${player2Name}: ${scorePlayer2}`;
+      } else {
+        resultText = `It's a tie!\n${player1Name}: ${scorePlayer1}\n${player2Name}: ${scorePlayer2}`;
+      }
+    } else {
+      resultText = `${player1Name}, your final score is: ${scorePlayer1}`;
+    }
+    document.getElementById("score-display").innerText = resultText;
+  }
+
+  function playAgain() {
+    hide("result");
+    show("category-selection");
+    showNameInputs();
+    // Allow renaming after every round
+    player1NameInput.value = player1Name;
+    player2NameInput.value = player2Name || "Player 2";
+    attachNameInputListeners();
+  }
+</script>
+
+</body>
+</html>
